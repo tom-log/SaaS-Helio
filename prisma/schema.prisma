@@ -1,0 +1,107 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model Empresas {
+  id        Int         @id @default(autoincrement())
+  nome      String
+  email     String      @unique
+  cnpj      String
+  cpf       String
+  cidade    String
+  endereco  String
+  criadoEm  DateTime    @default(now())
+  estoques  Estoques[]
+  usuarios  Usuarios[]
+  clientes  Clientes[]
+  vendas    Vendas[]
+  PreVendas PreVendas[]
+}
+
+model Estoques {
+  id        Int      @id @default(autoincrement())
+  produto   String
+  valor     Float
+  unidade   Int // Para quantidade de produtos
+  codigo    String
+  criadoEm  DateTime @default(now())
+  empresaId Int
+  empresa   Empresas @relation(fields: [empresaId], references: [id], onDelete: Cascade) // Especifica o onDelete aqui
+
+  @@index([empresaId], map: "estoques_empresaId_fkey")
+}
+
+model Usuarios {
+  id        Int         @id @default(autoincrement())
+  nome      String
+  email     String      @unique
+  senha     String
+  criadoEm  DateTime    @default(now())
+  empresaId Int
+  empresa   Empresas    @relation(fields: [empresaId], references: [id], onDelete: Cascade) // Especifica o onDelete aqui
+  papel     Papel       @default(EMPREGADO)
+  Vendas    Vendas[]
+  PreVendas PreVendas[]
+
+  @@index([empresaId], map: "usuarios_empresaId_fkey")
+}
+
+model Clientes {
+  id         Int      @id @default(autoincrement())
+  nome       String
+  endereco   String
+  cpf        String   @unique
+  identidade String   @unique
+  cidade     String
+  estado     String
+  telefone   String
+  email      String   @unique
+  empresaId  Int
+  empresa    Empresas @relation(fields: [empresaId], references: [id], onDelete: Cascade) // Permite que clientes existam sem empresa
+  vendas     Vendas[]
+
+  @@index([empresaId], map: "clientes_empresaId_fkey")
+}
+
+model Vendas {
+  id         Int      @id @default(autoincrement())
+  produto    String
+  valor      Decimal
+  unidade    Int
+  dataVenda  DateTime @default(now())
+  vendedorId Int
+  vendedor   Usuarios @relation(fields: [vendedorId], references: [id])
+  clienteId  Int
+  cliente    Clientes @relation(fields: [clienteId], references: [id])
+  empresaId  Int
+  empresa    Empresas @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+
+  @@index([clienteId], map: "vendas_clienteId_fkey")
+}
+
+model PreVendas {
+  id      Int     @id @default(autoincrement())
+  produto String
+  valor   Decimal
+  unidade Int
+  codigo  BigInt
+
+  dataVenda  DateTime  @default(now())
+  empresaId  Int
+  empresa    Empresas  @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  Usuarios   Usuarios? @relation(fields: [usuariosId], references: [id])
+  usuariosId Int?
+
+  @@index([empresaId], map: "preVendas_empresaId_fkey")
+}
+
+enum Papel {
+  ADMINISTRADOR
+  GERENTE
+  EMPREGADO
+}
