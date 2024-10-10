@@ -1,10 +1,11 @@
 "use client";
-import { useState } from "react";
-import { obterPorCodigoOuCliente } from "@/backend/db";
+import { useState, useEffect } from "react";
+import { obterPorCodigoOuCliente } from "@/backend/db/db";
 
 export default function InputPesquisaCliente({ onClienteSelect }) {
 	const [cliente, setCliente] = useState("");
 	const [sugestaoClientes, setSugestaoClientes] = useState([]);
+	const [selectedIndex, setSelectedIndex] = useState(-1);
 
 	async function buscarClientes(client) {
 		if (!cliente) return null;
@@ -22,8 +23,35 @@ export default function InputPesquisaCliente({ onClienteSelect }) {
 		onClienteSelect([clienteSelecionado]);
 	};
 
+	const handleKeyDown = (e) => {
+		if (sugestaoClientes.length === 0) return;
+
+		switch (e.key) {
+			case "ArrowDown":
+				e.preventDefault();
+				setSelectedIndex((prevIndex) =>
+					prevIndex < sugestaoClientes.length - 1 ? prevIndex + 1 : prevIndex
+				);
+				break;
+			case "ArrowUp":
+				e.preventDefault();
+				setSelectedIndex((prevIndex) => (prevIndex > 0 ? prevIndex - 1 : 0));
+				break;
+			case "Enter":
+				e.preventDefault();
+				if (selectedIndex >= 0) {
+					handleClienteSelect(sugestaoClientes[selectedIndex]);
+				}
+				break;
+		}
+	};
+
+	useEffect(() => {
+		setSelectedIndex(-1);
+	}, [sugestaoClientes]);
+
 	return (
-		<div className='flex flex-col items-center gap-4'>
+		<div className=' flex flex-col items-center gap-4'>
 			<div className='flex flex-col items-center gap-2 relative'>
 				<label htmlFor='pesquisa'>Cliente</label>
 				<input
@@ -31,6 +59,7 @@ export default function InputPesquisaCliente({ onClienteSelect }) {
 					type='text'
 					className='border-2 rounded-xl px-2 py-1 w-[250px] border-black text-black'
 					value={cliente}
+					autoComplete={`new-${Math.random()}`}
 					onChange={(e) => {
 						setCliente(e.target.value);
 						if (e.target.value.trim() !== "") {
@@ -39,13 +68,16 @@ export default function InputPesquisaCliente({ onClienteSelect }) {
 							setSugestaoClientes([]);
 						}
 					}}
+					onKeyDown={handleKeyDown}
 				/>
 				{sugestaoClientes.length > 0 && (
 					<div className='absolute top-full left-0 right-0 mt-1 border-2 border-gray-300 rounded-lg shadow-md mx-2 w-[400px] bg-white z-10'>
 						<ul className='space-y-1 max-h-[300px] overflow-y-auto p-2'>
-							{sugestaoClientes.slice(0, 6).map((cliente) => (
+							{sugestaoClientes.slice(0, 6).map((cliente, index) => (
 								<li
-									className='flex flex-col bg-gray-100 text-gray-800 hover:bg-blue-100 rounded-md p-3 transition duration-300 ease-in-out cursor-pointer'
+									className={`flex flex-col bg-gray-100 text-gray-800 hover:bg-blue-100 rounded-md p-3 transition duration-300 ease-in-out cursor-pointer ${
+										index === selectedIndex ? "bg-blue-200" : ""
+									}`}
 									key={cliente.id}
 									onClick={() => handleClienteSelect(cliente)}>
 									<span className='font-semibold'>
